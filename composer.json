@@ -1,0 +1,26 @@
+{
+    "name": "ludwig-gramberg/tagged-cache",
+    "description": "Tagged Cache",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://www.ludwig-gramberg.de/",
+    "authors": [
+        {
+            "name": "Ludwig Gramberg",
+            "homepage": "https://www.ludwig-gramberg.de/",
+            "email": "info@ludwig-gramberg.de",
+            "role": "Project Founder"
+        }
+    ],
+    "minimum-stability" : "stable",
+    "require": {
+        "php" : ">=5.6.0",
+        "ext-zlib" : "*",
+        "colinmollenhour/credis" : "1.x"
+    },
+    "autoload": {
+        "psr-0": {
+            "TaggedCache\\": ["lib/"]
+        }
+    }
+}
