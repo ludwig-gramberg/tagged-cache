@@ -149,10 +149,7 @@ class CacheService {
             $tagKeys = $this->connection->sMembers(self::CACHE_KEYS.$tagHash);
             $keys = array_merge($keys, $tagKeys);
         }
-
         $keys = array_unique($keys);
-
-        // delete keys and tag-to-key entries
 
         $this->cleanInvalidated($tags, $keys);
     }
@@ -172,6 +169,7 @@ class CacheService {
             $keyTags = $this->connection->sMembers(self::CACHE_TAGS.$keyHash);
             $tags = array_merge($tags, $keyTags);
         }
+        $tags = array_unique($tags);
 
         $this->cleanInvalidated($tags, $keys);
     }
