@@ -139,23 +139,58 @@ class CacheService {
      *
      * @param array $tags
      */
-    public function invalidate(array $tags) {
+    public function invalidateTags(array $tags) {
 
         // get keys affected by $tags
 
-        $affectedKeys = [];
+        $keys = [];
         foreach($tags as $tag) {
             $tagHash = $this->hashIdentifier($tag);
-            $keys = $this->connection->sMembers(self::CACHE_KEYS.$tagHash);
-            $affectedKeys = array_merge($affectedKeys, $keys);
+            $tagKeys = $this->connection->sMembers(self::CACHE_KEYS.$tagHash);
+            $keys = array_merge($keys, $tagKeys);
         }
 
-        $affectedKeys = array_unique($affectedKeys);
+        $keys = array_unique($keys);
 
         // delete keys and tag-to-key entries
 
+        $this->cleanInvalidated($tags, $keys);
+    }
+
+    /**
+     * invalidate all cache entries associated with $tags
+     *
+     * @param array $keys
+     */
+    public function invalidateKeys(array $keys) {
+
+        // get tags for keys
+
+        $tags = [];
+        foreach($keys as $key) {
+            $keyHash = $this->hashIdentifier($key);
+            $keyTags = $this->connection->sMembers(self::CACHE_TAGS.$keyHash);
+            $tags = array_merge($tags, $keyTags);
+        }
+
+        $this->cleanInvalidated($tags, $keys);
+    }
+
+    /**
+     * empty the entire cache
+     */
+    public function flush() {
+        $this->connection->flushAll();
+    }
+
+    // ---- helpers ----
+
+    protected function cleanInvalidated(array $tags, array $keys) {
+
+        // delete content entries and key-to-tags entries
+
         $delete = [];
-        foreach($affectedKeys as $key) {
+        foreach($keys as $key) {
             $keyHash = $this->hashIdentifier($key);
             $delete[] = self::CACHE_TAGS.$keyHash;
             $delete[] = self::CACHE_CONTENT.$keyHash;
@@ -167,18 +202,9 @@ class CacheService {
 
         foreach($tags as $tag) {
             $tagHash = $this->hashIdentifier($tag);
-            call_user_func_array([$this->connection, 'sRem'], array_merge([self::CACHE_KEYS.$tagHash], $affectedKeys));
+            call_user_func_array([$this->connection, 'sRem'], array_merge([self::CACHE_KEYS.$tagHash], $keys));
         }
     }
-
-    /**
-     * empty the entire cache
-     */
-    public function flush() {
-        $this->connection->flushAll();
-    }
-
-    // ---- helpers ----
 
     protected function hashIdentifier($id) {
         return sha1($id);
