@@ -196,6 +196,9 @@ class CacheService {
     // ---- helpers ----
 
     protected function cleanInvalidated(array $tags, array $keys) {
+        if(empty($keys)) {
+            return;
+        }
 
         // delete content entries and key-to-tags entries
 
