@@ -6,7 +6,7 @@ class CacheService {
     const CACHE_CONTENT = 'c_'; // key -> content
     const CACHE_TAGS = 't_'; // key -> tags
     const CACHE_KEYS = 'k_'; // tag -> keys
-    const CACHE_META = 'm_'; // key -> content-meta-data
+    const CACHE_INVENTORY = 'inv'; // list of all keys
 
     const COMPRESSION_TYPE_GZIP = 'gz';
     const COMPRESSION_TYPE_NONE = 'rv';
@@ -89,6 +89,10 @@ class CacheService {
         }
 
         $this->connection->set(self::CACHE_CONTENT.$keyHash, $cacheContent, $options);
+
+        // add page to inventory
+
+        $this->connection->sAdd(self::CACHE_INVENTORY, $key);
     }
 
     /**
@@ -175,6 +179,14 @@ class CacheService {
     }
 
     /**
+     * @return array
+     */
+    public function getStoredKeys() {
+        $keys = $this->connection->sMembers(self::CACHE_INVENTORY);
+        return $keys;
+    }
+
+    /**
      * empty the entire cache
      */
     public function flush() {
@@ -202,6 +214,10 @@ class CacheService {
             $tagHash = $this->hashIdentifier($tag);
             call_user_func_array([$this->connection, 'sRem'], array_merge([self::CACHE_KEYS.$tagHash], $keys));
         }
+
+        // remove invalidated keys from inventory
+
+        call_user_func_array([$this->connection, 'sRem'], array_merge([self::CACHE_INVENTORY], $keys));
     }
 
     protected function hashIdentifier($id) {
