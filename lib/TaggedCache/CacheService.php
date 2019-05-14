@@ -108,6 +108,13 @@ class CacheService {
             return null;
         }
 
+        // check if content is in inventory, if not, treat as invalid (inconsistent cache state)
+
+        $isInInventory = $this->connection->sIsMember($key);
+        if(!$isInInventory) {
+            return null;
+        }
+
         // read first 32 characters to extract meta data
 
         $metaData = substr($cacheContent, 0, 32);
