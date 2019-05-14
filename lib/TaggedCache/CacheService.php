@@ -110,7 +110,7 @@ class CacheService {
 
         // check if content is in inventory, if not, treat as invalid (inconsistent cache state)
 
-        $isInInventory = $this->connection->sIsMember($key);
+        $isInInventory = $this->connection->sIsMember(self::CACHE_INVENTORY, $key);
         if(!$isInInventory) {
             return null;
         }
