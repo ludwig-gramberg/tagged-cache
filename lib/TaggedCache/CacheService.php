@@ -48,6 +48,7 @@ class CacheService {
      * @param int|null $expiresInSeconds
      */
     public function store($key, $content, array $tags, $expiresInSeconds = null) {
+        $tags = array_unique($tags);
 
         // prepare identifier
 
@@ -57,37 +58,27 @@ class CacheService {
 
         $tagsBefore = $this->connection->sMembers(self::CACHE_TAGS.$keyHash);
 
-        sort($tagsBefore);
-        sort($tags);
+        $tagsAdd = array_diff($tags, $tagsBefore);
+        $tagsRemove = array_diff($tagsBefore, $tags);
 
-        if($tags !== $tagsBefore) {
+        // add/remove tags for request
 
-            $tagsAdd = array_diff($tags, $tagsBefore);
-            $tagsRemove = array_diff($tagsBefore, $tags);
+        if(!empty($tagsAdd)) {
+            call_user_func_array([$this->connection, 'sAdd'], array_merge([self::CACHE_TAGS.$keyHash], $tagsAdd));
+        }
+        if(!empty($tagsRemove)) {
+            call_user_func_array([$this->connection, 'sRem'], array_merge([self::CACHE_TAGS.$keyHash], $tagsRemove));
+        }
 
-            // add/remove tags for request
+        // store tag-to-keys lookup
 
-            if(empty($tags)) {
-                $this->connection->del(self::CACHE_TAGS.$keyHash);
-            } else {
-                if(!empty($tagsAdd)) {
-                    call_user_func_array([$this->connection, 'sAdd'], array_merge([self::CACHE_TAGS.$keyHash], $tagsAdd));
-                }
-                if(!empty($tagsRemove)) {
-                    call_user_func_array([$this->connection, 'sRem'], array_merge([self::CACHE_TAGS.$keyHash], $tagsRemove));
-                }
-            }
-
-            // store tag-to-keys lookup
-
-            foreach($tagsAdd as $tag) {
-                $tagHash = $this->hashIdentifier($tag);
-                call_user_func_array([$this->connection, 'sAdd'], [self::CACHE_KEYS.$tagHash, $key]);
-            }
-            foreach($tagsRemove as $tag) {
-                $tagHash = $this->hashIdentifier($tag);
-                call_user_func_array([$this->connection, 'sRem'], [self::CACHE_KEYS.$tagHash, $key]);
-            }
+        foreach($tagsAdd as $tag) {
+            $tagHash = $this->hashIdentifier($tag);
+            call_user_func_array([$this->connection, 'sAdd'], [self::CACHE_KEYS.$tagHash, $key]);
+        }
+        foreach($tagsRemove as $tag) {
+            $tagHash = $this->hashIdentifier($tag);
+            call_user_func_array([$this->connection, 'sRem'], [self::CACHE_KEYS.$tagHash, $key]);
         }
 
         // store content
