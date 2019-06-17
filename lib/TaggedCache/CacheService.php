@@ -229,7 +229,7 @@ class CacheService {
      */
     public function getStorageIndex() {
         $keys = [];
-        $iterator = 0;
+        $iterator = null;
         do {
             $resultKeys = $this->connection->scan($iterator);
             $keys = array_merge($keys, $resultKeys);
