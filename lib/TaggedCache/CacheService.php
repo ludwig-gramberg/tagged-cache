@@ -428,4 +428,44 @@ class CacheService {
         return [];
     }
 
+    /**
+     * removes all TTLs from all entries
+     */
+    public function removeAllTTls(): void {
+        
+        $keys = $this->getStoredKeys();
+        $numberOfKeys = count($keys);
+        
+        foreach($keys as $k => $key) {
+            
+            $keyHash = $this->hashIdentifier($key);
+            $redisKey = self::CACHE_CONTENT.$keyHash;
+            $cacheContent = $this->connection->get($redisKey);
+            if($cacheContent === false) {
+                continue;
+            }
+
+            // read first 32 characters to extract metadata
+
+            $metaData = substr($cacheContent, 0, 32);
+            if(!preg_match('/^([0-9]*):('.self::COMPRESSION_TYPE_GZIP.'|'.self::COMPRESSION_TYPE_NONE.'):/', $metaData, $m)) {
+                continue;
+            }
+
+            $expiresInSeconds = $m[1] == '' ? null : intval($m[1]);
+
+            if($expiresInSeconds === null) {
+                continue;
+            }
+            
+            // remove ttl in redis
+            $this->connection->persist($redisKey);
+            
+            // rewrite key without ttl / expiresInSecond meta-data
+            $cacheContent = substr($cacheContent, strlen($m[1]));
+            $this->connection->set($redisKey, $cacheContent);
+            
+            echo "$k/$numberOfKeys: removed ttl $expiresInSeconds from $key\n";
+        }
+    }
 }
